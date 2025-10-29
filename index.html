@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inbox Puzzles – Cryptogram</title>
+<style>
+  :root {
+    --brand-bg: #fdfdfd;
+    --brand-accent: #00a9a5;
+    --brand-highlight: #ffd74b;
+    --text-main: #222;
+  }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--brand-bg);
+    margin: 0;
+    padding: 1.5em;
+    display: flex;
+    justify-content: center;
+  }
+  .wrapper {
+    max-width: 640px;
+    width: 100%;
+    background: #fff;
+    border: 2px solid var(--brand-accent);
+    border-radius: 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    padding: 1.5em 2em;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 1.2em;
+  }
+  .logo {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: var(--brand-accent);
+  }
+  .tagline {
+    font-size: 0.95em;
+    color: #555;
+    margin-top: -4px;
+    font-style: italic;
+  }
+  h3 {
+    text-align: center;
+    color: var(--brand-accent);
+    border-bottom: 3px solid var(--brand-highlight);
+    display: inline-block;
+    padding-bottom: 4px;
+    margin: 0 auto 0.8em;
+  }
+  .instructions {
+    text-align: center;
+    margin-bottom: 1em;
+    color: #444;
+  }
+  #cryptogram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-family: monospace;
+    font-size: 18px;
+    line-height: 1.4;
+    margin-bottom: 1em;
+  }
+  input[type=text] {
+    width: 1.6em;
+    text-align: center;
+    text-transform: uppercase;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    padding: 3px;
+    font-family: monospace;
+    transition: border 0.2s;
+  }
+  input[type=text]:focus {
+    border-color: var(--brand-accent);
+    outline: none;
+  }
+  .button-row {
+    text-align: center;
+    margin-top: 0.5em;
+  }
+  button {
+    padding: 7px 14px;
+    margin: 0 4px;
+    border: none;
+    border-radius: 6px;
+    background: var(--brand-accent);
+    color: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 15px;
+    transition: background 0.2s;
+  }
+  button:hover {
+    background: #008e8a;
+  }
+  #copyBtn {
+    background: var(--brand-highlight);
+    color: #333;
+  }
+  #copyBtn:hover {
+    background: #f5c834;
+  }
+  #linkArea {
+    margin-top: 12px;
+    text-align: center;
+    word-break: break-all;
+    font-size: 13px;
+    color: #333;
+  }
+  footer {
+    text-align: center;
+    font-size: 0.8em;
+    color: #777;
+    margin-top: 1.5em;
+  }
+</style>
+</head>
+<body>
+  <div class="wrapper">
+    <header>
+      <div class="logo">🧩 Inbox Puzzles</div>
+      <div class="tagline">Your daily dose of brain-teasing fun!</div>
+    </header>
+    <h3>Cryptogram Puzzle</h3>
+    <p class="instructions">Type your guesses below each letter. Click “Get Save Link” to continue later.</p>
+
+    <div id="cryptogram"></div>
+
+    <div class="button-row">
+      <button id="saveBtn">🔗 Get Save Link</button>
+      <button id="copyBtn" style="display:none;">📋 Copy Link</button>
+      <button id="clearBtn" style="background:#bbb;">🔄 Clear Answers</button>
+    </div>
+    <div id="linkArea"></div>
+
+    <footer>© 2025 Inbox Puzzles. All rights reserved.</footer>
+  </div>
+
+<script>
+(function(){
+  const phrase="FSW ROR DST CZQNTZNLF FOH QH QFQNR? MTZQACT ST FQC LADCDQHROHP OH SOC YOTIR.";
+  const container=document.getElementById("cryptogram");
+  const saveBtn=document.getElementById("saveBtn");
+  const copyBtn=document.getElementById("copyBtn");
+  const clearBtn=document.getElementById("clearBtn");
+  const linkArea=document.getElementById("linkArea");
+  let inputs=[];
+
+  function compress(obj){
+    const pairs=Object.entries(obj).map(([k,v])=>k+v).join("|");
+    const utf8=new TextEncoder().encode(pairs);
+    let bin=""; utf8.forEach(b=>bin+=String.fromCharCode(b));
+    return btoa(bin).replace(/=+$/,"").replace(/\+/g,"-").replace(/\//g,"_");
+  }
+  function decompress(str){
+    try{
+      const b64=str.replace(/-/g,"+").replace(/_/g,"/");
+      const bin=atob(b64);
+      const bytes=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+      const decoded=new TextDecoder().decode(bytes);
+      const obj={};
+      decoded.split("|").forEach(p=>{
+        if(p.length>2){
+          const id=p.slice(0,-1);
+          const val=p.slice(-1);
+          obj[id]=val;
+        }
+      });
+      return obj;
+    }catch(e){return{};}
+  }
+
+  const params=new URLSearchParams(location.search);
+  const saved=params.get("d")?decompress(params.get("d")):{};
+
+  phrase.split(" ").forEach((word,wIndex)=>{
+    const wordDiv=document.createElement("div");
+    wordDiv.style.display="inline-flex";
+    wordDiv.style.marginRight="12px";
+    wordDiv.style.flexWrap="nowrap";
+    word.split("").forEach((ch,cIndex)=>{
+      if(/[A-Z]/.test(ch)){
+        const cell=document.createElement("div");
+        cell.style.display="flex";
+        cell.style.flexDirection="column";
+        cell.style.alignItems="center";
+        cell.style.width="1.6em";
+        const top=document.createElement("div");
+        top.textContent=ch;
+        top.style.fontWeight="bold";
+        top.style.marginBottom="4px";
+        const box=document.createElement("input");
+        box.type="text"; box.maxLength=1;
+        box.addEventListener("input",e=>e.target.value=e.target.value.toUpperCase());
+        const id=wIndex+"-"+cIndex;
+        if(saved[id]) box.value=saved[id];
+        inputs.push({id,box});
+        cell.appendChild(top);
+        cell.appendChild(box);
+        wordDiv.appendChild(cell);
+      }else{
+        const punct=document.createElement("div");
+        punct.textContent=ch;
+        punct.style.marginLeft="4px";
+        punct.style.fontWeight="bold";
+        wordDiv.appendChild(punct);
+      }
+    });
+    container.appendChild(wordDiv);
+  });
+
+  saveBtn.addEventListener("click",()=>{
+    const current={};
+    inputs.forEach(({id,box})=>{if(box.value)current[id]=box.value;});
+    const compact=compress(current);
+    const url=new URL(window.location.href.split("?")[0]);
+    url.searchParams.set("d",compact);
+    linkArea.innerHTML=`📎 <strong>Your Save Link:</strong><br><a href="${url}" target="_blank">${url}</a><br><em>(Copy or bookmark to resume later.)</em>`;
+    copyBtn.style.display="inline-block";
+    copyBtn.dataset.url=url;
+  });
+
+  copyBtn.addEventListener("click",()=>{
+    const link=copyBtn.dataset.url;
+    navigator.clipboard.writeText(link).then(()=>{
+      copyBtn.textContent="✅ Copied!";
+      setTimeout(()=>copyBtn.textContent="📋 Copy Link",1500);
+    });
+  });
+
+  clearBtn.addEventListener("click",()=>{
+    inputs.forEach(({box})=>box.value="");
+    linkArea.textContent="";
+    copyBtn.style.display="none";
+    history.replaceState({}, "", location.pathname);
+  });
+})();
+</script>
+</body>
+</html>
